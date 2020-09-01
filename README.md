@@ -1,6 +1,8 @@
 # CEES-Automated-Saturation-System
-An alternative to classic flow meters, the Automated saturation system can regulate liquid flow using an electronicall controlled valve, a camera and a microcontroller. By tracking pixel changes using OpenCV within a user-designated region of interest it can detect drops even with poor visibility.
+----------------------------------
+An alternative to classic flow meters, the Automated saturation system can regulate liquid flow using an electronicall controlled valve, a camera and a microcontroller. By tracking pixel changes using OpenCV within a user-designated region of interest it can detect drops even with poor visibility. Designed primarily for epxerimental setups where a model needs to be hydrated without being disturbed, it removes the need of human vigilance for the duration of the hydration.
 
+## Key Usage Table
 | Key| Function						 		    	             |
 |----|-------------------------------------------|
 | 0	 | Exits calibration sequence	 			         |
@@ -17,4 +19,3 @@ An alternative to classic flow meters, the Automated saturation system can regul
 | j	 | Moves bottom-right corner of frame left	 |
 | k	 | Moves bottom-right corner of frame down	 |
 | l	 | Moves bottom-right corner of frame right	 |
-
