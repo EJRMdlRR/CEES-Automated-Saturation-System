@@ -6,6 +6,7 @@
 | Key| Function						 		    	             |
 |----|-------------------------------------------|
 | 0	 | Exits calibration sequence	 			         |
+| e  | Enter a voltage value
 | +	 | Increases voltage	 				            	 |
 | -	 | Decreases voltage	 				             	 |
 | q	 | Terminates (quits) the program	 		       |
