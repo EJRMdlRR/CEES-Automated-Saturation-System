@@ -116,7 +116,7 @@ class Experiment:
 
     def addNotes(self, frameNumber):
         noteFrame = self.input_with_timeout("Notes: ", 30)
-        self.notes.append("Notes at frame [{}]: {}".format(frameNumber) + noteFrame)
+        self.notes.append("Notes at frame [{}]: {}".format(frameNumber, noteFrame))
     
     def finalNotes(self):
         self.fNotes = "Final Notes: " + self.input_with_timeout("Final Notes: ", 30)

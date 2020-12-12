@@ -5,15 +5,15 @@ import adafruit_mcp4725
 import numpy as np
 import cv2 as cv
 import datetime
-#import board
+import board
 import busio
 import time
 
 # Define functions
 def initialize():
     # Initialize I2C bus and MCP4725 board
-    #i2c = busio.I2C(board.SCL, board.SDA)     
-    #dac = adafruit_mcp4725.MCP4725(i2c)    
+    i2c = busio.I2C(board.SCL, board.SDA)     
+    dac = adafruit_mcp4725.MCP4725(i2c)    
     
     # Initialize Experiment object
     title = "v4" #input("Title: ")
@@ -179,7 +179,7 @@ if __name__ == '__main__':
         elif (k == ord('0')): defaults = e.dSet()                        # Confirm default voltage and rectangle size and location
         elif ((k == ord('r')) or (k == ord('R'))): defaults = False      # Don't save data while default voltage and rectangle values are reset
         elif ((k == ord('c')) or (k == ord('C'))): calibration = False   # Calibration sequence restarts (100 frames to average noise level)
-        elif ((k == ord('n')) or (k == ord('N'))): parallelize(e.addNotes, (frames,)) # Insert additional notes, find out how to parallelize
+        elif ((k == ord('n')) or (k == ord('N'))): parallelize(e.addNotes, (frames,)) # Insert additional notes
         elif ((k == ord('e')) or (k == ord('E'))): e.vSet(0)
         elif (k == ord('+')): e.vSet(1)
         elif (k == ord('-')): e.vSet(2)
