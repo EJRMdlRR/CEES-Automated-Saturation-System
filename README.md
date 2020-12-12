@@ -22,6 +22,7 @@
 | l	 | Moves bottom-right corner of frame right	 |
 
 ## Prime Goals
+* Switch to Pi Camera
 * Autoset Seconds per Drop to 80% of first K drops after researcher sets voltage value based on sight
 * Model valve behavior with constant pressure water, then with gravity's pressure, then with viscous liquid
 * Polish control algorithm, rolling average || bounded values || combination
