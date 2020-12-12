@@ -22,9 +22,10 @@
 | l	 | Moves bottom-right corner of frame right	 |
 
 ## Prime Goals
-* Autoset Seconds per Drop to 80% of first K drops after researcher set voltage value
+* Autoset Seconds per Drop to 80% of first K drops after researcher sets voltage value based on sight
 * Model valve behavior with constant pressure water, then with gravity's pressure, then with viscous liquid
 * Polish control algorithm, rolling average || bounded values || combination
 * Remote access to RPi
 * Reach out to other Earthquake Centers
+* Design enclosure for system (including lighting)
 
