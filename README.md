@@ -6,7 +6,7 @@
 | Key| Function						 		    	             |
 |----|-------------------------------------------|
 | 0	 | Exits calibration sequence	 			         |
-| e  | Enter a voltage value
+| e  | Enter a voltage value                     |
 | +	 | Increases voltage	 				            	 |
 | -	 | Decreases voltage	 				             	 |
 | q	 | Terminates (quits) the program	 		       |
@@ -20,3 +20,11 @@
 | j	 | Moves bottom-right corner of frame left	 |
 | k	 | Moves bottom-right corner of frame down	 |
 | l	 | Moves bottom-right corner of frame right	 |
+
+## Prime Goals
+* Autoset Seconds per Drop to 80% of first K drops after researcher set voltage value
+* Model valve behavior with constant pressure water, then with gravity's pressure, then with viscous liquid
+* Polish control algorithm, rolling average || bounded values || combination
+* Remote access to RPi
+* Reach out to other Earthquake Centers
+
