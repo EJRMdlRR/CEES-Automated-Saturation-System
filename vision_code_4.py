@@ -6,7 +6,7 @@ from multiprocessing import Process
 import adafruit_mcp4725
 import board
 import busio
-import cv2 as cv
+import cv2
 import numpy as np
 
 from CEESClasses import Experiment
@@ -23,71 +23,92 @@ def initialize():
 
     dac = adafruit_mcp4725.MCP4725(i2c)    
     
-    title = "v4" #input("Title: ")
-    user = "I"   #input("User/s: ")
-    visc = 60    #float(input("Liquid Viscosity: "))
-    notes = "N/A"#input("Enter any additional notes: ")
-    e = Experiment(title, user, visc, notes)
-    return e
+    """TARGET: Parallelize Experiment initialization with user input"""
+    title = "ASS_v5"
+    exp = Experiment(title)
+    return exp, dac
 
-def imageProcessing(backSub, frame, coordinates):
+def image_processing(backSub, frame, coordinates):
+    """Process image to capture moving pixels.
+    Crop image to region of interest (ROI), then convert to grayscale.
+    After that use background subtraction on ROI.
+    """
     north, south, east, west = coordinates
     
-    gray = cv.cvtColor(rect_img, cv.COLOR_BGR2GRAY)
-    fgMask = backSub.apply(gray) #this is basically 80% of the program right here
-    fgMask_RGB = cv.cvtColor(fgMask, cv.COLOR_GRAY2RGB)
+    gray = cv2.cv2tColor(rect_img, cv2.COLOR_BGR2GRAY)
+    fgMask = backSub.apply(gray)
+    fgMask_RGB = cv2.cv2tColor(fgMask, cv2.COLOR_GRAY2RGB)
     
-    cv.rectangle(frame, (10, 2), (100,20), (0,0,0), -1)
-    cv.putText(frame, str(capture.get(cv.CAP_PROP_POS_FRAMES)), (15, 15),
-               cv.FONT_HERSHEY_SIMPLEX, 0.5 , (255,255,255))
+    cv2.rectangle(frame, (10, 2), (100,20), (0,0,0), -1)
+    cv2.putText(frame, str(capture.get(cv2.CAP_PROP_POS_FRAMES)), (15, 15),
+               cv2.FONT_HERSHEY_SIMPLEX, 0.5 , (255,255,255))
     
     #Replacing the sketched image on Region of Interest
     frame[north: south, west : east] = fgMask_RGB 
-    nonzero = cv.countNonZero(fgMask)  
+    nonzero = cv2.countNonZero(fgMask)  
     return frame, nonzero
 
 def parallelize(function, arguments = None):
+    """Parallelize functions so as to not interrupt valve operation"""
     t = Process(target = function, args = arguments)
     t.start()
     
 def fSet(coordinates, key):
-    validKeys = [ord('w'), ord('W'), ord('a'), ord('A'), ord('s'), ord('S'),
-                 ord('d'), ord('D'), ord('i'), ord('I'), ord('j'), ord('J'),
-                 ord('k'), ord('K'), ord('l'), ord('L'),]
+    validKeys = [ord('w'), ord('W'), ord('a'), ord('A'),
+                 ord('s'), ord('S'), ord('d'), ord('D'),
+                 ord('i'), ord('I'), ord('j'), ord('J'),
+                 ord('k'), ord('K'), ord('l'), ord('L'),
+                 ]
     north, south, east, west = coordinates
     
     # Top-Right Corner
-    if key == ord('w') or key == ord('W'):   north -= 5
-    elif key == ord('a') or key == ord('A'): west -= 5
-    elif key == ord('s') or key == ord('S'): north += 5
-    elif key == ord('d') or key == ord('D'): west += 5
+    if key == ord('w') or key == ord('W'):
+        north -= 5
+    elif key == ord('a') or key == ord('A'):
+        west -= 5
+    elif key == ord('s') or key == ord('S'):
+        north += 5
+    elif key == ord('d') or key == ord('D'):
+        west += 5
     
     # Bottom-Left Corner
-    elif key == ord('i') or key == ord('I'): south -= 5
-    elif key == ord('j') or key == ord('J'): east -= 5
-    elif key == ord('k') or key == ord('K'): south += 5
-    elif key == ord('l') or key == ord('L'): east += 5
+    elif key == ord('i') or key == ord('I'):
+        south -= 5
+    elif key == ord('j') or key == ord('J'):
+        east -= 5
+    elif key == ord('k') or key == ord('K'):
+        south += 5
+    elif key == ord('l') or key == ord('L'):
+        east += 5
     
-    # Bound checking
-    if (north < 0): north = 0
-    elif (north > height): north = height
-    if (south < 0): south = 0
-    elif (south > height): south = height
+    """TARGET: Turn into bounds checking function"""
+    if (north < 0):
+        north = 0
+    elif (north > height):
+        north = height
+    if (south < 0):
+        south = 0
+    elif (south > height):
+        south = height
     if (east< 0): east = 0
-    elif (east > width): east = width    
-    if (west < 0): west = 0
-    elif (west > width): west = width
+    elif (east > width):
+        east = width    
+    if (west < 0):
+        west = 0
+    elif (west > width):
+        west = width
     
     if key in validKeys: print("Coordinates: ({}, {}), ({}, {})".format(north, west, south, east))
     return [north, south, east, west]
 
-def summary():
-    print("Final voltage: {:.2f}".format(voltage))
-    print("Total drops: {}".format(num_drops))
-    print("Average pixel delta: {:.2f}".format(pix_avg))
-    print("Average drop delta: {:.2f}".format(dp_avg))    
+def summary(exp):
+    """ Print out essential experiment statistics"""
+    print("Final voltage: {:.2f}".format(exp.get_volts()))
+    print("Total drops: {}".format(exp.get_drops()))
+    print("Average pixel delta: {:.2f}".format(exp.get_noise_average()))
+    print("Average drop delta: {:.2f}".format(exp.get_drop_average()))
 
-def terminationProcedure(volts):    
+def terminationProcedure(dac, volts):    
     volts =int(volts/10)*10
     while (volts >= 10):
         volts -= 5
@@ -96,7 +117,7 @@ def terminationProcedure(volts):
 
 if __name__ == '__main__':
     # Initialize settings
-    e = initialize()
+    exp, dac = initialize()
     frames= 0
     waitFrame = 0
     liquid = True
@@ -106,15 +127,15 @@ if __name__ == '__main__':
     calibration = False
     
     # Open video feed
-    backSub = cv.createBackgroundSubtractorMOG2(history = 40, varThreshold = 60, detectShadows = False)
-    capture = cv.VideoCapture(0) # 0 - laptop webcam; 1 - USB webcam; "cv.samples.findFileOrKeep(args.input))" - file
+    """TARGET: Parametrize video source"""
+    backSub = cv2.createBackgroundSubtractorMOG2(history = 40, varThreshold = 60, detectShadows = False)
+    capture = cv2.VideoCapture(0) # 0 - laptop webcam; 1 - USB webcam; "cv2.samples.findFileOrKeep(args.input))" - file
     if not capture.isOpened:
-        print('Unable to open: ' + args.input)
-        exit(0)
+        print("Unable to open 0")
+        exit(1)
         
     # get image dimensions
-    height = int(capture.get(4))
-    width = int(capture.get(3))
+    height, width = int(capture.get(4)), int(capture.get(3))
     coords = [0, height, width, 0]
 
     # clog values
@@ -129,13 +150,13 @@ if __name__ == '__main__':
             break    
       
         # Rectangle marker
-        r = cv.rectangle(frame, (coords[3], coords[0]), (coords[2], coords[1]), (100, 50, 200), 3)
+        r = cv2.rectangle(frame, (coords[3], coords[0]), (coords[2], coords[1]), (100, 50, 200), 3)
         rect_img = frame[coords[0]:coords[1], coords[3]: coords[2]]
         
         # Main processing of program
         if (defaults):
             frames += 1
-            frame, delta = imageProcessing(backSub, frame, coords)
+            frame, delta = image_processing(backSub, frame, coords)
             if(calibration):
                 if(delta > pixAvg * 5):
                     if (e.cGet() > e.vGet()): e.vEqualize()                     
@@ -175,9 +196,9 @@ if __name__ == '__main__':
                     calibration = True
     
         # Show the image in a resizeable frame
-        cv.namedWindow('Frame',cv.WINDOW_NORMAL)
-        cv.imshow('Frame', frame)      
-        k = cv.waitKey(60) & 0xFF
+        cv2.namedWindow('Frame',cv2.WINDOW_NORMAL)
+        cv2.imshow('Frame', frame)      
+        k = cv2.waitKey(60) & 0xFF
 
         # Checks for keypresses
         if ((k == ord('q')) or (k == ord('Q'))): liquid = False
@@ -192,7 +213,7 @@ if __name__ == '__main__':
         
         if (not mutiny): dac.raw_value = e.vGet()
     capture.release()
-    cv.destroyAllWindows()
+    cv2.destroyAllWindows()
     parallelize(terminationProcedure, (e.vGet(),))
     e.finalNotes()
     e.terminate(success)

@@ -27,6 +27,9 @@ class Experiment:
         self.noise_sum = 0
 
     # Getters
+    def get_drops(self):
+        return len(self.drops)
+        
     def get_volts(self):
         return self.volts
 
