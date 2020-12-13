@@ -86,7 +86,7 @@ def terminationProcedure(volts):
     volts =int(volts/10)*10
     while (volts >= 10):
         volts -= 5
-        #dac.raw_value = volts
+        dac.raw_value = volts
         time.sleep(0.1)        
 
 if __name__ == '__main__':
@@ -160,7 +160,7 @@ if __name__ == '__main__':
                     else: pixAvg = e.addNoise(frames, delta)                   
             else: 
                 mutiny = True
-                # dac.raw_value = 5
+                dac.raw_value = 5
                 time.sleep(0.01)
                 if (frames < 250): 
                     pixAvg = e.addNoise(frames, delta)  
@@ -185,7 +185,7 @@ if __name__ == '__main__':
         elif (k == ord('-')): e.vSet(2)
         elif (k != 0xFF): coords = fSet(coords, k)
         
-        if (not mutiny): dac = 1 #dac.raw_value = e.vGet()
+        if (not mutiny): dac.raw_value = e.vGet()
     capture.release()
     cv.destroyAllWindows()
     parallelize(terminationProcedure, (e.vGet(),))

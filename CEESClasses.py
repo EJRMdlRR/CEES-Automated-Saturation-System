@@ -1,167 +1,207 @@
+import datetime
+import select
 import sys
 import time
-import select
-import datetime
 
-class Experiment: 
+
+class Experiment:
     # Constructor
-    def __init__(self, title = 'Auto', exp = '000', user = 'Default', spd = 2, visc = 50, notes=''):
-        # Independednt Data
+    def __init__(self, title='', user='Default', viscosity=50, notes=''):
+        # Experiment Details
         self.title = title
-        self.experiment = exp
-        self.date = datetime.datetime.now()
+        self.date = datetime.datetime.now().strftime("$M:%H_%m/%d/%Y")
         self.user = user
-        self.secPerDrops = spd
-        self.viscosity = visc
-        self.iNotes = notes
-        self.filename = self.title + "_" + self.experiment + ".txt"
+        self.viscosity = viscosity
+        self.notes = [notes]
+        self.filename = self.title + "_" + self.date + ".txt"
         self.began = time.time()
-        
+
         # Drop Data
-        self.optimalVoltage = 0
-        self.dropData = []
-        self.lastDrop = 0
-        self.dropSum = 0
-        self.volts = 5
-        self.cVolts = 5
-        
+        self.optimal_volts = self.volts = self.clog_volts = 45
+        self.last_drop_time = self.drop_sum = 0
+        self.seconds_per_drops = 2
+        self.drops = []
+
         # Noise data
-        self.noiseData = []
-        self.noiseLength = 0   # number of noise frames
-        self.noiseSum = 0     # sum of noise frames
-        
-        # Misc
-        self.notes = []
+        self.noise = []
+        self.noise_sum = 0
 
     # Getters
-    def vGet(self): return self.volts
-    def cGet(self): return self.cVolts
-    def tSinceDrop(self): return time.time() - self.lastDrop
-    def dropAvg(self): return self.dropSum / len(self.dropData)
-    def pixAvg(self): return self.noiseSum / self.noiseLength
-    
-    # Setters
-    def vEqualize(self):
-        while(self.cVolts > self.volts):
-            self.cVolts -= 81
-            
-            # Bound checking
-            if self.cVolts > 4055: self.cVolts = 4055
-            elif self.cVolts < 5:  self.cVolts = 5
-            if (self.cVolts < self.volts): self.cVolts = self.volts
-            
-            time.sleep(0.05) 
-        self.lastDrop = 0
-        
-    def vSet(self, key):
-        if key == 0:   self.volts = input("Please enter a voltage: ")
-        elif key == 1: self.volts += 5
-        elif key == 2: self.volts -= 5
-        elif key > 2: self.volts = key
-        
-        # Bound checking
-        if self.volts > 4055: self.volts = 4055
-        elif self.volts < 5:  self.volts = 5
-        
-        self.cVolts = self.volts
-        print("Voltage: {:.2f}%".format(100 * ((self.volts - 5)/ 4050)))
-        
-    def cSet(self, key):
-        if key == 0:   self.cVolts = input("Please enter a voltage: ")
-        elif key == 1: self.cVolts += 81
-        elif key == 2: self.cVolts -= 81
-        elif key > 2: self.cVolts = key
-        
-        # Bound checking
-        if self.cVolts > 4055: self.cVolts = 4055
-        elif self.cVolts < 5:  self.cVolts = 5
-        if (self.cVolts < self.volts): self.cVolts = self.volts
-        print("Voltage: {:.2f}%".format(100 * ((self.cVolts - 5) / 4050)))      
-    
-    def dSet(self):
-        self.optimalVoltage = self.volts
-        return True
-    
-    # Miscellaneous
-    def addNoise(self, frameNumber, nonzero):
-        self.noiseLength += 1
-        self.noiseSum += nonzero
-        self.noiseData.append((frameNumber, nonzero))
-        return self.noiseSum / self.noiseLength
-        
-    def addDrop(self, frameNumber, nonzero):
-        # data storage
-        self.dropData.append([time.time() - self.began, time.time() - self.lastDrop, frameNumber, self.noiseSum / self.noiseLength, nonzero, self.volts])
-        self.dropSum += nonzero
-        
-        # voltage calculations
-        if (self.lastDrop != 0):
-            self.cVolts = self.volts = self.optimalVoltage + ((time.time() - self.lastDrop) - self.secPerDrops) * self.viscosity
-            print("{:.2f}s since last drop".format(time.time() - self.lastDrop))
-            print("Voltage: {:.2f}%".format(100 * (self.volts / 4050)))
-        self.lastDrop = time.time()
-        
-        # Bound checking
-        if self.volts > 4055: self.volts = 4055
-        elif self.volts < 5:  self.volts = 5
-        
+    def get_volts(self):
         return self.volts
-    
-    def input_with_timeout(self, prompt, timeout):
-        print(prompt)
-        ready, _, _ = select.select([sys.stdin], [],[], timeout)
-        if ready:
-            return sys.stdin.readline().rstrip('\n') # expect stdin to be line-buffered
-        return "None"    
 
-    def addNotes(self, frameNumber):
-        noteFrame = self.input_with_timeout("Notes: ", 30)
-        self.notes.append("Notes at frame [{}]: {}".format(frameNumber, noteFrame))
-    
+    def get_clog_volts(self):
+        return self.clog_volts
+
+    def time_since_drop(self):
+        return time.time() - self.last_drop_time
+
+    def get_drop_average(self):
+        if len(self.drops):
+            return self.drop_sum / len(self.drops)
+        else:
+            return "No drops"
+
+    def get_noise_average(self):
+        if len(self.noise):
+            return self.noise_sum / len(self.noise)
+        else:
+            return "No noise"
+
+    def get_pixel_avg(self):
+        return self.noise_sum / len(self.noise)
+
+    # Setters
+    def equalize_volts(self):
+        """Reset current volts to last known volts before clogging."""
+        while(self.clog_volts > self.volts):
+            self.clog_volts -= 81
+            time.sleep(0.05)
+
+        if (self.clog_volts < self.volts):
+            self.clog_volts = self.volts
+
+        self.last_drop_time = 0
+
+    def set_volts(self, key):
+        """Change voltage by:
+            increasing it by 5,
+            decreasing it by 5,
+            or setting it to a custom value.
+        """
+        values = (5, -5)
+        if key >= 2:
+            self.volts = key
+        else:
+            self.volts += values[key]
+
+        self.clog_volts = self.volts = bounds_checker(self.volts)
+        print("Voltage: {:.2f}%".format(100 * ((self.volts - 45) / 4055)))
+
+    def set_clog_volts(self, key):
+        """Change clog voltage by:
+            increasing it by 5,
+            decreasing it by 5,
+            or setting it to a custom value.
+        """
+        values = (81, -81)
+        if key >= 2:
+            self.clog_volts = key
+        else:
+            self.clog_volts += values[key]
+
+        self.clog_volts = self.volts = bounds_checker(self.volts)
+        if (self.clog_volts < self.volts):
+            self.clog_volts = self.volts
+        print("Voltage: {:.2f}%".format(100 * ((self.clog_volts - 45) / 4055)))
+
+    def optimal_volts_set(self):
+        """Set optimal volt value according to researcher."""
+        self.optimal_volts = self.volts
+        return True
+
+    # Miscellaneous
+    def add_noise(self, frame_no, noise):
+        """Add noise data to class for averaging."""
+        self.noise_sum += noise
+        self.noise.append((frame_no, noise))
+        return self.noise_sum / len(self.noise)
+
+    def add_drop(self, frame_no, noise):
+        """Add drop data to history and calculate new voltage.
+        New voltage is calculated as change from the optimal value.
+        The optimal value is set by the researcher.
+        """
+        self.drops.append([time.time() - self.began,
+                           time.time() - self.last_drop_time,
+                           frame_no,
+                           self.noise_sum / len(self.noise),
+                           noise,
+                           self.volts,
+                           ])
+        self.drop_sum += noise
+
+        if (self.last_drop_time):
+            volts = (self.optimal_volts
+                     + ((time.time() - self.last_drop_time)
+                        - self.seconds_per_drops) * self.viscosity)
+            self.clog_volts = self.volts = volts
+            print("{:.2f}s since last drop"
+                  .format(time.time() - self.last_drop_time)
+                  )
+            print("Voltage: {:.2f}%".format(100 * (self.volts / 4055)))
+        self.last_drop_time = time.time()
+
+        return bounds_checker(self.volts)
+
+    def input_with_timeout(self, prompt, timeout):
+        """Read keyboard input for [timeout]s length of time.
+        Also, expect stdin to be line buffered"""
+        print(prompt)
+        ready, _, _ = select.select([sys.stdin], [], [], timeout)
+        if ready:
+            return sys.stdin.readline().rstrip('\n')
+        return "None"
+
+    def addNotes(self, frame_no):
+        """Add user notes to experiment data."""
+        notes = self.input_with_timeout("Notes: ", 30)
+        self.notes.append("Notes at frame [{}]: {}".format(frame_no, notes))
+
     def finalNotes(self):
-        self.fNotes = "Final Notes: " + self.input_with_timeout("Final Notes: ", 30)
-    
+        final_notes = self.input_with_timeout("Final Notes: ", 30)
+        self.notes.append("Final Notes: " + final_notes)
+
     def terminate(self, success):
-        if(success): s = "Succesful"
-        else: s = "Unsuccesful"
-        
-        # Open file in write mode
-        dropFile = open(self.filename,"w")
-        
-        # Write initial information
-        dropFile.write("Title: {}\n".format(self.title)) 
-        dropFile.write("Experiment Number: {}\n".format(self.experiment))
-        dropFile.write("Date: {}\n".format(self.date))
-        dropFile.write("User/s: {}\n".format(self.user))
-        dropFile.write("Viscosity: {}\n".format(self.viscosity)) 
-        dropFile.write("DPS: {}\n".format(self.secPerDrops)) 
-        dropFile.write("Notes: {}\n".format(self.iNotes))
-        dropFile.write("TotalTime\tTimeSinceDrop\tFrame\tMovingPixelAvg\tMovingPixels\tVoltage")
-        
-        # Write drop data
-        for drop in self.dropData:
-            dropFile.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(drop[0], drop[1], drop[2], drop[3], drop[4], drop[5]))
-            
-        # Write final information
-        dropFile.write("Tank Emptied: {}\n".format(s))
-        dropFile.write("Final voltage: {}\n".format(self.volts))
-        dropFile.write("Total drops: {}\n".format(len(self.dropData)))
-        dropFile.write("Average pixel delta: {}\n".format(self.noiseSum / self.noiseLength))
-        if (len(self.dropData) == 0): dropAverage = 0
-        else: dropAverage = self.dropAvg()
-        dropFile.write("Average drop delta: {}\n".format(dropAverage))
+        """Execute termination procedure
+        1. Write collected drop data to text file.
+        2. Write collected noise data to text file
+        """
+        emptied = "Succesful" if success else "Unsuccesful"
+        data = """Title: {0}
+        Date: {1}
+        User/s: {2}
+        Viscosity: {3}
+        Seconds per Drop: {4}
+        Notes: {5}
+        TotalTime\tTimeSinceDrop\tFrame\tMovingPixelAvg\tMovingPixels\tVoltage
+        """.format(self.title,
+                   self.date,
+                   self.user,
+                   self.viscosity,
+                   self.seconds_per_drops,
+                   self.notes[0],
+                   )
+
+        drop_file = open(self.filename, "w")
+        write = drop_file.write
+        for drop in range(1, len(self.drops) - 1):
+            write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(*self.drops[drop]))
+        write("Tank Emptied: {}\n".format(s))
+        write("Final voltage: {}\n".format(self.volts))
+        write("Total drops: {}\n".format(len(self.drops)))
+        write("Avg. pixel noise: {}\n".format(self.get_noise_average()))
+        write("Avg. drop noise: {}\n".format(self.get_drop_average()))
         for note in self.notes:
-            dropFile.write(note)
-        dropFile.write(self.fNotes)
-        
-        # Close drop file
-        dropFile.close()
-        
-        # Write separate file for noise data
-        noiseFile = open(self.title + "_" + self.experiment + "_Noise", "w")
-        
-        # Write noise
-        for noise in self.noiseData:
-            noiseFile.write("{}\t{}\n".format(noise[0], noise[1]))
-            
+            write(note)
+        write(self.notes[-1])
+        drop_file.close()
+
+        noiseFile = open(self.filename + "_Noise", "w")
+        for noise in self.noise:
+            noiseFile.write("{}\t{}\n".format(*noise))
         noiseFile.close()
+
+
+# Helpers
+def bounds_checker(volts):
+    """Limits voltage.
+    Voltage limits are 45 (1.1%) and 4055 (99.0%) of a 4095 max.
+    Valve calibrated so that at 45 (1.1%) it's shut.
+    """
+    if volts > 4055:
+        return 4055
+    elif volts < 45:
+        return 45
+    else:
+        return volts
