@@ -29,7 +29,7 @@ class Experiment:
     # Getters
     def get_drops(self):
         return len(self.drops)
-        
+
     def get_volts(self):
         return self.volts
 
