@@ -71,6 +71,8 @@ class Experiment:
             increasing it by 5,
             decreasing it by 5,
             or setting it to a custom value.
+
+            Set clog volts to track current volts.
         """
         values = (5, -5)
         if key >= 2:
@@ -81,7 +83,7 @@ class Experiment:
         self.clog_volts = self.volts = bounds_checker(self.volts)
         print("Voltage: {:.2f}%".format(100 * ((self.volts - 45) / 4055)))
 
-    def set_clog_volts(self, key):
+    def set_clog_volts(self, key=0):
         """Change clog voltage by:
             increasing it by 5,
             decreasing it by 5,
@@ -93,12 +95,12 @@ class Experiment:
         else:
             self.clog_volts += values[key]
 
-        self.clog_volts = self.volts = bounds_checker(self.volts)
+        self.clog_volts = bounds_checker(self.clog_volts)
         if (self.clog_volts < self.volts):
             self.clog_volts = self.volts
         print("Voltage: {:.2f}%".format(100 * ((self.clog_volts - 45) / 4055)))
 
-    def optimal_volts_set(self):
+    def set_optimal_volts(self):
         """Set optimal volt value according to researcher."""
         self.optimal_volts = self.volts
         return True
@@ -108,7 +110,6 @@ class Experiment:
         """Add noise data to class for averaging."""
         self.noise_sum += noise
         self.noise.append((frame_no, noise))
-        return self.noise_sum / len(self.noise)
 
     def add_drop(self, frame_no, noise):
         """Add drop data to history and calculate new voltage.
@@ -128,14 +129,12 @@ class Experiment:
             volts = (self.optimal_volts
                      + ((time.time() - self.last_drop_time)
                         - self.seconds_per_drops) * self.viscosity)
-            self.clog_volts = self.volts = volts
+            self.clog_volts = self.volts = bounds_checker(volts)
             print("{:.2f}s since last drop"
                   .format(time.time() - self.last_drop_time)
                   )
             print("Voltage: {:.2f}%".format(100 * (self.volts / 4055)))
         self.last_drop_time = time.time()
-
-        return bounds_checker(self.volts)
 
     def input_with_timeout(self, prompt, timeout):
         """Read keyboard input for [timeout]s length of time.
