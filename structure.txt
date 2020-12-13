@@ -1,0 +1,32 @@
+ROI:
+* __init__
+ * bounds = tuple (immutable)
+ * coordinates = list (mutable)
+ * set = bool
+* get_ROI
+* set_ROI
+* check_bounds
+
+Valve:
+* Interface = BusIO
+* Board = DAC
+
+* get_volts
+* get_clog_volts
+* set_volts
+* set_clog_volts
+* equalize_volts
+* close_valve: parallelize
+
+Model(ROI)
+* Drops
+* Noise
+* Saturated - Bool
+* Status (Clogged?) - Bool
+
+Experiment:
+* Initiation
+* Info - Strings
+* Voltages
+* Notes
+* Termination

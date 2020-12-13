@@ -9,7 +9,7 @@ import busio
 import cv2
 import numpy as np
 
-from CEESClasses import Experiment
+from experiment import Experiment
 
 
 def initialize():
@@ -63,64 +63,6 @@ def parallelize(function, arguments=None):
     """Parallelize functions so as to not interrupt valve operation"""
     t = Process(target=function, args=arguments)
     t.start()
-
-
-def frame_set(coordinates, key):
-    """Set region of interest to where drops fall using keys"""
-    validKeys = [ord('w'), ord('W'),
-                 ord('a'), ord('A'),
-                 ord('s'), ord('S'),
-                 ord('d'), ord('D'),
-                 ord('i'), ord('I'),
-                 ord('j'), ord('J'),
-                 ord('k'), ord('K'),
-                 ord('l'), ord('L'),
-                 ]
-    north, south, east, west = coordinates
-
-    # Top-Right Corner
-    if key == ord('w') or key == ord('W'):
-        north -= 5
-    elif key == ord('a') or key == ord('A'):
-        west -= 5
-    elif key == ord('s') or key == ord('S'):
-        north += 5
-    elif key == ord('d') or key == ord('D'):
-        west += 5
-
-    # Bottom-Left Corner
-    elif key == ord('i') or key == ord('I'):
-        south -= 5
-    elif key == ord('j') or key == ord('J'):
-        east -= 5
-    elif key == ord('k') or key == ord('K'):
-        south += 5
-    elif key == ord('l') or key == ord('L'):
-        east += 5
-
-    """TARGET: Turn into bounds checking function"""
-    if (north < 0):
-        north = 0
-    elif (north > height):
-        north = height
-    if (south < 0):
-        south = 0
-    elif (south > height):
-        south = height
-    if (east < 0):
-        east = 0
-    elif (east > width):
-        east = width
-    if (west < 0):
-        west = 0
-    elif (west > width):
-        west = width
-    coordinates = [north, south, east, west]
-
-    if key in validKeys:
-        print("Coordinates: ({0}, {1}), ({2}, {3})".format(*coordinates))
-
-    return coordinates
 
 
 def summary(exp):
@@ -221,7 +163,6 @@ if __name__ == '__main__':
                                 exp.set_clog_volts()
                             clogged = False
                         if (time_open >= 6):
-                            exp.volts(4055)
                             success = True
                             liquid = False
                     else:
@@ -240,13 +181,13 @@ if __name__ == '__main__':
         # Show the image in a resizeable frame
         cv2.namedWindow('Frame', cv2.WINDOW_NORMAL)
         cv2.imshow('Frame', frame)
-        k = cv2.waitKey(60) & 0xFF
+        k = cv2.waitKey(60) & 0xDF
 
         # Checks for keypresses
         if ((k == ord('q')) or (k == ord('Q'))):
             liquid = False
         elif (k == ord('0')):
-            # Confirm default volts and rect. size and location
+            # Confirm default volts and re size and location
             defaults = exp.set_optimal_volts()
         elif ((k == ord('r')) or (k == ord('R'))):
             # Don't save data while default volts and rect. values are reset
