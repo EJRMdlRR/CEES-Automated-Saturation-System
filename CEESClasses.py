@@ -158,11 +158,11 @@ class Experiment:
         2. Write collected noise data to text file
         """
         emptied = "Succesful" if success else "Unsuccesful"
-        data = """Title: {0}
+        initial_data = """Title: {0}
         Date: {1}
         User/s: {2}
         Viscosity: {3}
-        Seconds per Drop: {4}
+        Seconds per drop: {4}
         Notes: {5}
         TotalTime\tTimeSinceDrop\tFrame\tMovingPixelAvg\tMovingPixels\tVoltage
         """.format(self.title,
@@ -172,16 +172,24 @@ class Experiment:
                    self.seconds_per_drops,
                    self.notes[0],
                    )
+        final_data = """Tank emptied: {0}
+        Final voltage: {1}
+        Total drops: {2}
+        Average pixel noise: {3}
+        Average drop noise: {4}
+        """.format(emptied,
+                   self.volts,
+                   len(self.drops),
+                   self.get_noise_average(),
+                   self.get_drop_average(),
+                   )
 
         drop_file = open(self.filename, "w")
         write = drop_file.write
+        write(initial_data)
         for drop in range(1, len(self.drops) - 1):
             write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(*self.drops[drop]))
-        write("Tank Emptied: {}\n".format(s))
-        write("Final voltage: {}\n".format(self.volts))
-        write("Total drops: {}\n".format(len(self.drops)))
-        write("Avg. pixel noise: {}\n".format(self.get_noise_average()))
-        write("Avg. drop noise: {}\n".format(self.get_drop_average()))
+        write(final_data)
         for note in self.notes:
             write(note)
         write(self.notes[-1])
