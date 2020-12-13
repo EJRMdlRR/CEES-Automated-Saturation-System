@@ -1,28 +1,33 @@
 # Import libraries
-from multiprocessing import Process
-from CEESClasses import Experiment
-import adafruit_mcp4725
-import numpy as np
-import cv2 as cv
 import datetime
+import time
+from multiprocessing import Process
+
+import adafruit_mcp4725
 import board
 import busio
-import time
+import cv2 as cv
+import numpy as np
+
+from CEESClasses import Experiment
+
 
 # Define functions
 def initialize():
-    # Initialize I2C bus and MCP4725 board
-    i2c = busio.I2C(board.SCL, board.SDA)     
+    """Initialize the following:
+    1. the Raspberry Pi's I2C bus,
+    2. the MCP4725 board,
+    3. and the current Experiment class object
+    """
+    i2c = busio.I2C(board.SCL, board.SDA)  
+
     dac = adafruit_mcp4725.MCP4725(i2c)    
     
-    # Initialize Experiment object
     title = "v4" #input("Title: ")
-    exp = input("Experiment #: ")
     user = "I"   #input("User/s: ")
-    spd = 2      #float(input("Desired drop Rate: "))
     visc = 60    #float(input("Liquid Viscosity: "))
     notes = "N/A"#input("Enter any additional notes: ")
-    e = Experiment(title, exp, user, spd, visc, notes)
+    e = Experiment(title, user, visc, notes)
     return e
 
 def imageProcessing(backSub, frame, coordinates):
