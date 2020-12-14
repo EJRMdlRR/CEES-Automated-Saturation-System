@@ -3,66 +3,16 @@ import datetime
 import time
 from multiprocessing import Process
 
-import adafruit_mcp4725
-import board
-import busio
-import cv2
-import numpy as np
-
 from experiment import Experiment
-
-
-def initialize():
-    """Initialize the following:
-    1. the Raspberry Pi's I2C bus,
-    2. the MCP4725 board,
-    3. and the current Experiment class object
-    """
-    i2c = busio.I2C(board.SCL, board.SDA)
-
-    dac = adafruit_mcp4725.MCP4725(i2c)
-
-    """TARGET: Parallelize Experiment initialization with user input"""
-    exp = Experiment("ASS_v5")
-    return exp, dac
-
-
-def image_processing(backSub, frame, coordinates):
-    """Process image to capture moving pixels.
-    Crop image to region of interest (ROI), then convert to grayscalexp.
-    After that use background subtraction on ROI.
-    """
-    north, south, east, west = coordinates
-
-    """TARGET: Better variable names"""
-    gray = cv2.cvtColor(rect_img, cv2.COLOR_BGR2GRAY)
-    fgMask = backSub.apply(gray)
-    fgMask_RGB = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2RGB)
-
-    cv2.rectangle(frame,
-                  (10, 2),
-                  (100, 20),
-                  (0, 0, 0),
-                  -1
-                  )
-    cv2.putText(frame,
-                str(capture.get(cv2.CAP_PROP_POS_FRAMES)),
-                (15, 15),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (255, 255, 255)
-                )
-
-    # Replacing the sketched image on Region of Interest
-    frame[north: south, west: east] = fgMask_RGB
-    noise = cv2.countNonZero(fgMask)
-    return frame, noise
-
 
 def parallelize(function, arguments=None):
     """Parallelize functions so as to not interrupt valve operation"""
-    t = Process(target=function, args=arguments)
+    if arguments:
+        t = Process(target=function, args=arguments)
+    else:
+        t = Process(target=function)
     t.start()
+    t.join()
 
 
 def summary(exp):
@@ -73,55 +23,22 @@ def summary(exp):
     print("Average drop noise: {:.2f}".format(exp.get_drop_average()))
 
 
-def termination_procedure(dac, volts):
-    """Completely closes the valve.
-    Makes the current volts a multiple of 10. Then decreases by 5.
-    Continues until the volts set to 44% the calibrated 'closed' volts.
-
-    Valve closing is isolated and parallelized.
-    """
-    volts = int(volts / 10) * 10
-    while (volts > 20):
-        volts -= 5
-        dac.raw_value = volts
-        time.sleep(0.1)
-
-
 if __name__ == '__main__':
-    exp, dac = initialize()
+    exp = Experiment("ASS_v5")
     mutiny = success = defaults = calibration = False
     frames = waitFrame = 0
     liquid = True
 
-    """TARGET: Parametrize video source"""
-    # Background subtractor args: history, varThreshold, detectShadows
-    # Video Capture Args:
-    # 0 = laptop cam;
-    # 1 = USB cam;
-    # "cv2.samples.findFileOrKeep(args.input))" = file
-    backSub = cv2.createBackgroundSubtractorMOG2(40, 60, False)
-    capture = cv2.VideoCapture(0)
-    if not capture.isOpened:
-        print("Unable to open 0")
-        exit(1)
-
-    # get image dimensions
-    height, width = int(capture.get(4)), int(capture.get(3))
-    coords = [0, height, width, 0]
-
-    # clog values
     time_open = 0
     latency_delay = 0
     clogged = False
 
     while (liquid):
-        # Takes frame input from camera
-        ret, frame = capture.read()
+        ret, frame = exp.capture.read()
         if frame is None:
             print("Camera Error")
             exit(1)
 
-        # Rectangle marker
         r = cv2.rectangle(frame,
                           (coords[3], coords[0]),
                           (coords[2], coords[1]),
@@ -130,7 +47,6 @@ if __name__ == '__main__':
                           )
         rect_img = frame[coords[0]:coords[1], coords[3]: coords[2]]
 
-        # Main processing of program
         if (defaults):
             frames += 1
             frame, noise = image_processing(backSub, frame, coords)
@@ -138,7 +54,7 @@ if __name__ == '__main__':
                 """TARGET: Better filtering of drop ripples"""
                 if(noise > exp.get_noise_average() * 5):
                     if (exp.get_clog_volts() > exp.get_volts()):
-                        exp.equalize_volts()
+                        exp.equalize()
                     if (waitFrame == 0):
                         exp.add_drop(frames, noise)
                     elif (waitFrame < 10):
@@ -169,7 +85,6 @@ if __name__ == '__main__':
                         exp.add_noise(frames, noise)
             else:
                 mutiny = True
-                dac.raw_value = 5
                 time.sleep(0.01)
                 if (frames < 250):
                     exp.add_noise(frames, noise)
@@ -205,9 +120,9 @@ if __name__ == '__main__':
             coords = frame_set(coords, k)
 
         if (not mutiny):
-            dac.raw_value = exp.get_volts()
+            pass
 
     capture.release()
     cv2.destroyAllWindows()
-    parallelize(termination_procedure, (dac, exp.get_volts(), ))
+    parallelize(exp.shutoff)
     exp.terminate(success)

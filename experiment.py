@@ -1,12 +1,14 @@
 import datetime
 from model import Model
+from valve import Valve
+from monitor import Monitor
 import select
 import sys
 import time
 
 
-class Experiment(Model):
-    # Constructor
+class Experiment(Model, Valve, Monitor):
+    # constructor
     def __init__(self, title='', user='Default', viscosity=50, **kwargs):
         # Experiment Details
         self.title = title
@@ -18,66 +20,9 @@ class Experiment(Model):
         self.notes = [self.add_notes(0)]
         self.beginning = time.time()
 
-        self.volts = self.clog_volts = self.optimal_volts = 45
-
         super().__init__(**kwargs)
 
-    # Getters
-    def get_volts(self):
-        return self.volts
-
-    def get_clog_volts(self):
-        return self.clog_volts
-
-    # Setters
-    def set_volts(self, key):
-        """Change voltage by:
-            increasing it by 5,
-            decreasing it by 5,
-            or setting it to a custom value.
-
-            Set clog volts to track current volts.
-        """
-        values = (5, -5)
-        if key >= 2:
-            self.volts = key
-        else:
-            self.volts += values[key]
-
-        self.clog_volts = self.volts = bounds_checker(self.volts)
-        print("Voltage: {:.2f}%".format(100 * ((self.volts - 45) / 4055)))
-
-    def set_clog_volts(self):
-        """Increase clog voltage by 81 (2%)"""
-        self.clog_volts = bounds_checker(self.clog_volts + 81)
-        print("Voltage: {:.2f}%".format(100 * ((self.clog_volts - 45) / 4055)))
-
-    def set_optimal_volts(self):
-        """Set optimal volt value according to researcher."""
-        self.optimal_volts = self.volts
-        return True
-
-    def calculate_volts(self):
-        delta = (time.time() - self.last_drop_time) - self.seconds_per_drops
-        volts = (self.optimal_volts + delta * self.viscosity)
-        self.clog_volts = self.volts = bounds_checker(volts)
-
-        print("{:.2f}s since last drop"
-              .format(time.time() - self.last_drop_time)
-              )
-        print("Voltage: {:.2f}%"
-              .format(100 * (self.volts / 4055))
-              )
-
-    def equalize_volts(self):
-        """Reset current volts to last known volts before clogging."""
-        while(self.clog_volts > self.volts):
-            self.clog_volts -= 81
-            time.sleep(0.05)
-
-        if (self.clog_volts < self.volts):
-            self.clog_volts = self.volts
-
+    # setters
     def input_with_timeout(self, prompt, timeout):
         """Read keyboard input for [timeout]s length of time.
         Also, expect stdin to be line buffered"""
@@ -142,17 +87,3 @@ class Experiment(Model):
         for noise in self.noise:
             noise_file.write("{}\t{}\n".format(*noise))
         noise_file.close()
-
-
-# Helpers
-def bounds_checker(volts):
-    """Limits voltage.
-    Voltage limits are 45 (1.1%) and 4055 (99.0%) of a 4095 max.
-    Valve calibrated so that at 45 (1.1%) it's shut.
-    """
-    if volts > 4055:
-        return 4055
-    elif volts < 45:
-        return 45
-    else:
-        return volts

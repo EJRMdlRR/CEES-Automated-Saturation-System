@@ -1,51 +1,10 @@
 import time
 
 
-class ROI():
-    def __init__(self, bounds):
-        self.bounds = bounds
-        self.coordinates = [0, bounds[0], 0, bounds[1]]
-        self.set = False
-
-    def get_ROI(self):
-        return self.coordinates
-
-    def set_ROI(self, key):
-        """Set region of interest to where drops fall using keys"""
-        keys = {ord('W'): (0, -5), ord('S'): (0, 5),
-                ord('A'): (1, -5), ord('D'): (1, 5),
-                ord('I'): (2, -5), ord('K'): (2, 5),
-                ord('J'): (3, -5), ord('L'): (3, 5),
-                }
-
-        self.coordinates[keys[key][0]] += keys[key][1]
-        self.bounds_checker()
-
-        if key in keys:
-            print("Coordinates: ({0}, {1}), ({2}, {3})"
-                  .format(*self.coordinates)
-                  )
-
-    def bounds_checker(self):
-        """Restric ROI to camera capture dimensions"""
-        if self.coordinates[0] < 0:
-            self.coordinates[0] = 0
-        if self.coordinates[1] > self.bounds[0]:
-            self.coordinates[1] = self.bounds[0]
-        if self.coordinates[2] < 0:
-            self.coordinates[2] = 0
-        if self.coordinates[3] > self.bounds[1]:
-            self.coordinates[3] = self.bounds[1]
-
-class Valve():
-    pass
-
-class Model(ROI):
+class Model():
     def __init__(self, **kwargs):
-        self.ROI = ROI(kwargs['bounds']) if 'bounds' in kwargs else None
-
         self.last_drop_time = self.drop_sum = 0
-        self.seconds_per_drops = kwargs['spd'] if 'spd' in kwargs else 2
+        self.seconds_per_drops = kwargs.pop('spd') if 'spd' in kwargs else 2
         self.drops = []
 
         self.noise = []
@@ -76,29 +35,20 @@ class Model(ROI):
         else:
             return "No noise"
 
-    def get_ROI(self):
-        if self.ROI:
-            return self.ROI.get_ROI()
-        else:
-            return None
-
     # Setters
     def add_noise(self, frame_no, noise):
         """Add noise data to class for averaging."""
         self.noise_sum += noise
         self.noise.append((frame_no, noise))
 
-    def add_drop(self, frame_no, noise):
-        """Add drop data to history and calculate new voltage.
-        New voltage is calculated as change from the optimal value.
-        The optimal value is set by the researcher.
-        """
-        self.drops.append([time.time() - self.began,
+    def add_drop(self, frame_no, noise, beginning, volts):
+        """Add drop data to history"""
+        self.drops.append([time.time() - beginning,
                            time.time() - self.last_drop_time,
                            frame_no,
                            self.noise_sum / len(self.noise),
                            noise,
-                           self.volts,
+                           volts,
                            ])
         self.drop_sum += noise
 
