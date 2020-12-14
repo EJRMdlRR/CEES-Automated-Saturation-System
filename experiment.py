@@ -10,17 +10,17 @@ import time
 class Experiment(Model, Valve, Monitor):
     # constructor
     def __init__(self, title='', user='Default', viscosity=50, **kwargs):
-        # Experiment Details
+        print("INIT EXP")
         self.title = title
         self.date = datetime.datetime.now().strftime("$M.%H.%m.%d.%Y")
         self.filename = self.title + "_" + self.date + ".txt"
 
         self.user = user
         self.viscosity = viscosity
-        self.notes = [self.add_notes(0)]
+        self.notes = ['self.add_notes(0)']
         self.beginning = time.time()
 
-        super().__init__(**kwargs)
+        super().__init__()
 
     # setters
     def input_with_timeout(self, prompt, timeout):

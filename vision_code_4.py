@@ -1,9 +1,10 @@
-# Import libraries
+import cv2
 import datetime
 import time
 from multiprocessing import Process
 
 from experiment import Experiment
+
 
 def parallelize(function, arguments=None):
     """Parallelize functions so as to not interrupt valve operation"""
@@ -25,6 +26,7 @@ def summary(exp):
 
 if __name__ == '__main__':
     exp = Experiment("ASS_v5")
+    time.sleep(4)
     mutiny = success = defaults = calibration = False
     frames = waitFrame = 0
     liquid = True
@@ -34,22 +36,11 @@ if __name__ == '__main__':
     clogged = False
 
     while (liquid):
-        ret, frame = exp.capture.read()
-        if frame is None:
-            print("Camera Error")
-            exit(1)
-
-        r = cv2.rectangle(frame,
-                          (coords[3], coords[0]),
-                          (coords[2], coords[1]),
-                          (100, 50, 200),
-                          3,
-                          )
-        rect_img = frame[coords[0]:coords[1], coords[3]: coords[2]]
+        frame = exp.get_frame()
 
         if (defaults):
             frames += 1
-            frame, noise = image_processing(backSub, frame, coords)
+            frame, noise = exp.image_processing()
             if(calibration):
                 """TARGET: Better filtering of drop ripples"""
                 if(noise > exp.get_noise_average() * 5):
@@ -96,33 +87,33 @@ if __name__ == '__main__':
         # Show the image in a resizeable frame
         cv2.namedWindow('Frame', cv2.WINDOW_NORMAL)
         cv2.imshow('Frame', frame)
-        k = cv2.waitKey(60) & 0xDF
+        key = cv2.waitKey(60) & 0xDF
 
         # Checks for keypresses
-        if ((k == ord('q')) or (k == ord('Q'))):
+        if ((key == ord('q')) or (key == ord('Q'))):
             liquid = False
-        elif (k == ord('0')):
+        elif (key == ord('0')):
             # Confirm default volts and re size and location
             defaults = exp.set_optimal_volts()
-        elif ((k == ord('r')) or (k == ord('R'))):
+        elif ((key == ord('r')) or (key == ord('R'))):
             # Don't save data while default volts and rect. values are reset
             defaults = False
-        elif ((k == ord('c')) or (k == ord('C'))):
+        elif ((key == ord('c')) or (key == ord('C'))):
             # Calibration sequence restarts (100 frames to average noise level)
             calibration = False
-        elif ((k == ord('n')) or (k == ord('N'))):
+        elif ((key == ord('n')) or (key == ord('N'))):
             parallelize(exp.add_notes, (frames,))  # Insert additional notes
-        elif (k == ord('+')):
+        elif (key == ord('+')):
             exp.set_volts(0)
-        elif (k == ord('-')):
+        elif (key == ord('-')):
             exp.set_volts(1)
-        elif (k != 0xFF):
-            coords = frame_set(coords, k)
+        elif (key != 0xFF):
+            exp.set_ROI(key)
 
         if (not mutiny):
             pass
 
-    capture.release()
+    exp.capture.release()
     cv2.destroyAllWindows()
     parallelize(exp.shutoff)
     exp.terminate(success)

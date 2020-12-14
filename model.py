@@ -3,6 +3,8 @@ import time
 
 class Model():
     def __init__(self, **kwargs):
+        print("INIT MODEL")
+        
         self.last_drop_time = self.drop_sum = 0
         self.seconds_per_drops = kwargs.pop('spd') if 'spd' in kwargs else 2
         self.drops = []

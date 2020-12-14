@@ -1,15 +1,23 @@
 import time
 
 import adafruit_mcp4725
-import board
 import busio
+try:
+    import board
+except Exception as exc:
+    BOARD = None
 
 
 class Valve():
     # Constructor
     def __init__(self, **kwargs):
-        self.i2c = busio.I2C(board.SCL, board.SDA)
-        self.dac = adafruit_mcp4725.MCP4725(self.i2c)
+        print("INIT VALVE")
+        
+        if BOARD:
+            self.i2c = busio.I2C(board.SCL, board.SDA)
+            self.dac = adafruit_mcp4725.MCP4725(self.i2c)
+        else:
+            self.dac = sim_Dac()
         self.volts = self.clog_volts = self.optimal_volts = 45
         self.scale = 100/4010
 
@@ -35,11 +43,12 @@ class Valve():
         else:
             self.volts += values[key]
 
-        self.clog_volts = self.volts = check_bounds(self.volts)
+        self.volts = check_bounds(self.volts)
+        self.clog_volts = self.dac.raw_value = self.volts
         print("Volts: {:.2f}%".format(self.scale * (self.volts - 45)))
 
     def set_clog_volts(self):
-        """Increase clog voltage by 81 (2%)"""
+        """Increase clog voltage by 80 (2%)"""
         self.clog_volts = check_bounds(self.clog_volts + 80)
         print("Clog volts: {:.2f}%".format(self.scale * (self.clog_volts - 45)))
 
@@ -88,3 +97,8 @@ def check_bounds(volts):
         return 45
     else:
         return volts
+
+
+class sim_Dac():
+    def __init__(self):
+        self.raw_value = 0

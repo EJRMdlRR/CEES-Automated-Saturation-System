@@ -1,7 +1,10 @@
+import cv2
+
+
 class ROI():
     def __init__(self, bounds=(99, 99), **kwargs):
         self.bounds = bounds
-        self.coordinates = [0, self.bounds[0], 0, self.bounds[1]]
+        self.coordinates = [0, 0, self.bounds[0], self.bounds[1]]
         self.set = False
 
     def get_ROI(self):
