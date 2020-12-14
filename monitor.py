@@ -22,9 +22,7 @@ class Monitor(ROI):
         https://docs.opencv.org/4.5.0/de/de1/group__video__motion.html
         """
         print("INIT MONITOR")
-
         self.capture = cv2.VideoCapture(src)
-        print("CAPTURED")
         if not self.capture.isOpened:
             print("Unable to open", src)
             exit(1)
