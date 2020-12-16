@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 
 from roi import ROI
 
