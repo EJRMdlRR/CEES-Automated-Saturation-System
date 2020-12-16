@@ -1,0 +1,13 @@
+Title: ASS_v5
+        Date: $M.00.12.16.2020
+        User/s: Default
+        Viscosity: 50
+        Seconds per drop: 2
+        Notes: self.add_notes(0)
+        TotalTime	TimeSinceDrop	Frame	MovingPixelAvg	MovingPixels	Voltage
+        Tank emptied: Succesful
+        Final voltage: 3995
+        Total drops: 0
+        Average pixel noise: 1228.8
+        Average drop noise: -1
+        

@@ -5,15 +5,16 @@
 ## Key Usage Table
 | Key| Function						 		     |
 |----|-------------------------------------------|
-| 0	 | Exits calibration sequence	 			 |
+| 0	 | Sets current values as defaults [1]		 |
 | e  | Enter a voltage value                     |
 | +	 | Increases voltage	 				     |
 | -	 | Decreases voltage	 				     |
 | q	 | Terminates (quits) the program	 		 |
 | r	 | Resets frame adjustment sequence	 		 |
-| v	 | Resets voltage calibration sequence	   	 |
 | w, a, s, d | Manipulates top-left corner of frame |
 | i, j, k, l | Manipulates bottom-right corner of frame |
+
+[1] Default values required for calibration. Can be reset at anytime using keys.
 
 ## Prime Goals
 * Switch to Pi Camera

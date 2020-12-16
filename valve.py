@@ -2,33 +2,68 @@ import time
 
 import adafruit_mcp4725
 import busio
+
 try:
     import board
 except Exception as exc:
+    print("Exception: {}\n".format(exc))
     BOARD = None
 
 
 class Valve():
-    # Constructor
+    """Electronically Proportioned Valve
+    ....................................
+    Uses Raspberry Pi's I2C interface to communicate with a DAC.
+    Digital to Analog Converter (DAC) chosen is Adafruit's MCP4725.
+    Contains all voltage controls for each control algorithm state.
+
+    Actual voltage is set by dac.raw_value on a 12 bit scale.
+    Output further restricted to improve DAC performance and lifetime.
+       0 = Absolute off. 0 volts sent by the Raspberry Pi.
+      45 = Calibrated off. Valve set to close at this value.
+    4055 = Calibrated fully open. Maximum voltage to valve.
+    4095 = Absolute open. Maximum possible voltage output.
+    Off calibration must be performed physically.
+
+    If a DAC is not connected it uses a simulated DAC.
+    This allows local testing and simulations.
+    """
+    __DELAY = 10
+    __SCALE = 100 / 4010
+
     def __init__(self, **kwargs):
-        print("INIT VALVE")
-        
+        """
+        Initializes Valve
+        -----------------
+        If there is an error connecting to the external DAC,
+        And if user agrees, sets self.dac to use SimDac class.
+        Otherwise raises Exception.
+
+        Sets all initial volts values to calibrated off of 45.
+        -----------------
+        Requires no external arguments.
+        Contains **kwargs to pass kywd=arg pairs down MRO chain.
+        """
+        super().__init__(**kwargs)
+
         if BOARD:
-            self.i2c = busio.I2C(board.SCL, board.SDA)
-            self.dac = adafruit_mcp4725.MCP4725(self.i2c)
+            self.__i2c = busio.I2C(board.SCL, board.SDA)
+            self.dac = adafruit_mcp4725.MCP4725(self.__i2c)
+        elif input('Use simulated DAC?\n(Y/N) = ').upper() == 'Y':
+            print()
+            self.dac = SimDac()
         else:
-            self.dac = sim_Dac()
+            raise Exception("No DAC or unsupported DAC connected.")
+
         self.volts = self.clog_volts = self.optimal_volts = 45
-        self.scale = 100/4010
 
-    # Getters
-    def get_volts(self):
-        return self.volts
+        self.latency = time.time()
+        self.clogged = False
 
-    def get_clog_volts(self):
-        return self.clog_volts
+        self.time_open = 0
 
-    # Setters
+        print(":: VALVE INITIALIZED ::\n")
+
     def set_volts(self, key):
         """Change voltage by:
             increasing it by 5,
@@ -37,53 +72,88 @@ class Valve():
 
             Set clog volts to track current volts.
         """
-        values = (5, -5)
-        if key >= 2:
-            self.volts = key
-        else:
-            self.volts += values[key]
 
-        self.volts = check_bounds(self.volts)
-        self.clog_volts = self.dac.raw_value = self.volts
-        print("Volts: {:.2f}%".format(self.scale * (self.volts - 45)))
+        vals = {ord('+'): 5, ord('-'): -5}
+        funcs = {ord('0'): self.set_optimal_volts,
+                 ord('E'): input,
+                 }
+
+        if (key & 0xDF) in funcs:
+            if funcs[key]().is_integer():
+                self.volts = funcs[key]()
+            elif funcs[key]().is_numeric():
+                self.volts = int(funcs[key]())
+        elif key in vals:
+            self.volts += vals[key]
+            self.volts = check_bounds(self.volts)
+
+        if (self.dac.raw_value != self.volts and not self.clogged):
+            print("Volts: {:.2f}%".format(self.__SCALE * (self.volts - 45)))
+            self.clog_volts = self.dac.raw_value = self.volts
 
     def set_clog_volts(self):
-        """Increase clog voltage by 80 (2%)"""
-        self.clog_volts = check_bounds(self.clog_volts + 80)
-        print("Clog volts: {:.2f}%".format(self.scale * (self.clog_volts - 45)))
+        """Increase clog voltage by 80 (2%) every 5s.
+        If the output is at max, increase a time_open counter.
+        Once the output is max for 1min the saturation is a successs
+        """
+        self.clogged = True
+        if (time.time() - self.latency > self.__DELAY):
+            self.latency = time.time()
+            if (self.clog_volts == 4055):
+                self.time_open += 1
+                print("{}s fuly open.".format(self.time_open * self.__DELAY))
+            else:
+                self.clog_volts = check_bounds(self.clog_volts + 80)
+                print("Clog volts: {:.2f}%".format(
+                    self.__SCALE * (self.clog_volts - 45))
+                    )
+
+        if (self.time_open >= 12):
+            return True
+        return False
 
     def set_optimal_volts(self):
-        """Set optimal volt value according to researcher."""
+        """Set optimal volt value according to researcher.
+        Setas a function for the set_volts procedure."""
         self.optimal_volts = self.volts
-        return True
 
-    # Miscellaneous
     def calculate(self, K, seconds_per_drops, last_drop_time):
+        """Calculate appropriate voltage based on most recent drop."""
+        print("Calculating new voltage...")
         delta = (time.time() - last_drop_time) - seconds_per_drops
-        volts = (self.optimal_volts + delta * K)
-        self.clog_volts = self.volts = check_bounds(volts)
+        self.volts = check_bounds((self.optimal_volts + delta * K))
 
-        print("{:.2f}s since last drop".format(time.time() - last_drop_time))
-        print("Volts: {:.2f}%".format(self.scale * ((self.volts - 45))))
+        if (self.dac.raw_value != self.volts):
+            print("Volts: {:.2f}%".format(self.__SCALE * (self.volts - 45)))
+            self.clog_volts = self.dac.raw_value = self.volts
 
     def equalize(self):
-        """Reset current volts to last known volts before clogging."""
+        """Reset current volts to last known volts before clogging.
+        Closes valve 2x as fast as clog protocol opens it."""
+        self.time_open = 0
+        self.clogged = False
+
         while(self.clog_volts > self.volts):
-            self.clog_volts -= 160
+            self.clog_volts -= 80
             time.sleep(0.05)
 
         if (self.clog_volts < self.volts):
             self.clog_volts = self.volts
 
-    def shutoff(self):
-        """Completely closes the valve.
-        Makes the current volts a multiple of 10. Then decreases by 5.
-        Continues until the volts set to 44% the calibrated 'closed' volts.
-        """
-        self.volts = int(self.volts / 10) * 10
-        while (self.volts > 20):
-            self.dac.raw_value = self.volts = self.volts - 5
-            time.sleep(0.1)
+
+def shutoff_valve(dac):
+    """Completely closes the valve.
+    Makes the current volts a multiple of 10. Then decreases by 5.
+    Continues until the volts set to 44% the calibrated 'closed' volts.
+    TODO: Parallelize
+    TODO: Test read capability of self.dac.raw_value
+    """
+    print("Shutting off valve...")
+    dac.raw_value = int(dac.raw_value / 10) * 10
+    while (dac.raw_value > 20):
+        dac.raw_value -= 5
+        time.sleep(0.1)
+    print("Valve closed.\n")
 
 
 def check_bounds(volts):
@@ -99,6 +169,12 @@ def check_bounds(volts):
         return volts
 
 
-class sim_Dac():
+class SimDac():
+    """Simulated Digital to Analog Converter
+    ........................................
+    Solely for testing and simulation purposes
+
+    TODO: Implement further DAC methods
+    """
     def __init__(self):
         self.raw_value = 0
