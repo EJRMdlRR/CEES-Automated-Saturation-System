@@ -29,8 +29,8 @@ class Experiment(Monitor, Valve, Model, ):
         super().__init__(**kwargs)
 
         self.title = title
-        self.date = datetime.datetime.now().strftime("$M.%H.%m.%d.%Y")
-        self.filename = self.title + "_" + self.date + ".txt"
+        self.date = datetime.datetime.now().strftime("%M.%H.%m.%d.%Y")
+        self.filename = self.title + "_" + self.date
 
         self.user = user
         self.viscosity = viscosity
@@ -158,7 +158,7 @@ class Experiment(Monitor, Valve, Model, ):
                    str(self.get_drop_average()),
                    )
 
-        drop_file = open(self.filename, "w")
+        drop_file = open(self.filename + ".txt", "w")
         write = drop_file.write
 
         write(initial_data)
@@ -172,7 +172,7 @@ class Experiment(Monitor, Valve, Model, ):
             write("Final Notes: " + final_notes)
         drop_file.close()
 
-        noise_file = open(self.filename + "_Noise", "w")
+        noise_file = open(self.filename + "_Noise.txt", "w")
         for noise in self.noise:
             noise_file.write("{}\t{}\n".format(*noise))
         noise_file.close()
