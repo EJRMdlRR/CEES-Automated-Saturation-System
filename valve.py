@@ -61,7 +61,6 @@ class Valve():
         self.__time_open = 0
         self.clogged = False
 
-
         print(":: VALVE INITIALIZED ::\n")
 
     def set_volts(self, key):
