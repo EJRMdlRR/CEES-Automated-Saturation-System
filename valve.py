@@ -11,8 +11,8 @@ except Exception as exc:
 
 
 class Valve():
-    """Electronically Proportioned Valve
-    ....................................
+    """Electronically Proportioned Valve.
+
     Uses Raspberry Pi's I2C interface to communicate with a DAC.
     Digital to Analog Converter (DAC) chosen is Adafruit's MCP4725.
     Contains all voltage controls for each control algorithm state.
@@ -32,15 +32,14 @@ class Valve():
     __SCALE = 100 / 4010
 
     def __init__(self, **kwargs):
-        """
-        Initializes Valve
-        -----------------
+        """Initialize Valve.
+
         If there is an error connecting to the external DAC,
         And if user agrees, sets self.dac to use SimDac class.
         Otherwise raises Exception.
 
         Sets all initial volts values to calibrated off of 45.
-        -----------------
+
         Requires no external arguments.
         Contains **kwargs to pass kywd=arg pairs down MRO chain.
         """
@@ -64,15 +63,16 @@ class Valve():
         print(":: VALVE INITIALIZED ::\n")
 
     def set_volts(self, key):
-        """Change voltage by:
-            increasing it by 5,
-            decreasing it by 5,
-            or setting it to a custom value.
+        """Set voltage according to keyboard input.
 
-            Set clog volts to track current volts.
+        '+' = 8 (0.2%) increase.
+        '-' = 8 (0.2%) decrease.
+        'E' = user entered value.
+         Warning, interrupts program.
+
+        Set clog volts to track current volts.
         """
-
-        vals = {ord('+'): 5, ord('-'): -5}
+        vals = {ord('+'): 8, ord('-'): -8}
         funcs = {ord('0'): self.__set_optimal_volts,
                  ord('E'): self.__set_input_volts,
                  }
@@ -89,6 +89,7 @@ class Valve():
 
     def set_clog_volts(self):
         """Increase clog voltage by 80 (2%) every 5s.
+
         If the output is at max, increase a time_open counter.
         Once the output is max for 1min the saturation is a successs
         """
@@ -109,14 +110,14 @@ class Valve():
 
     def __set_optimal_volts(self):
         """Set optimal volt value according to researcher.
-        Setas a function for the set_volts procedure.
+
+        Set as a function for the set_volts procedure.
+        Optimal volts are set anytime keyboard input is '0'.
         """
         self.__optimal_volts = self.volts
 
     def __set_input_volts(self):
-        """Set optimal volt value according to researcher.
-        Setas a function for the set_volts procedure.
-        """
+        """Set volts to user input. If invalid input, do nothing."""
         try:
             volts = int(input("Please enter your desired voltage: "))
             self.volts = check_bounds(volts)
@@ -135,6 +136,7 @@ class Valve():
 
     def equalize(self):
         """Reset current volts to last known volts before clogging.
+
         Closes valve 2x as fast as clog protocol opens it.
         """
         self.__time_open = 0
@@ -149,7 +151,8 @@ class Valve():
 
 
 def shutoff_valve(dac):
-    """Completely closes the valve.
+    """Completely close the valve.
+
     Makes the current volts a multiple of 10. Then decreases by 5.
     Continues until the volts set to 44% the calibrated 'closed' volts.
     TODO: Parallelize
@@ -164,24 +167,26 @@ def shutoff_valve(dac):
 
 
 def check_bounds(volts):
-    """Limits voltage.
+    """Limit voltage.
+
     Voltage limits are 45 (1.1%) and 4055 (99.0%) of a 4095 max.
     Valve calibrated so that at 45 (1.1%) it's fully shutoff.
     """
     if volts > 4055:
         return 4055
-    elif volts < 45:
+    if volts < 45:
         return 45
-    else:
-        return volts
+    return volts
 
 
 class SimDac():
-    """Simulated Digital to Analog Converter
-    ........................................
+    """Simulated Digital to Analog Converter.
+
     Solely for testing and simulation purposes
 
     TODO: Implement further DAC methods
     """
+
     def __init__(self):
+        """Create self.raw_value for calling by other methods."""
         self.raw_value = 0

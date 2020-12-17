@@ -1,17 +1,17 @@
 class ROI():
-    """Region of Interest (ROI)
-    ...........................
+    """Region of Interest (ROI).
+
     Contains methods and values relating to the region of interest.
     Possible dimensions are bounded by camera capture input.
     """
 
     def __init__(self, **kwargs):
-        """Initializes ROI.
-        -------------------
+        """Initialize ROI.
+
         To allow class to initialize before it's child Monitor class,
          set bounds to default of 400^2.
         Bounds will update when camera capture is first instantiated.
-        -------------------
+
         Uses bounds in **kwargs if given.
         Passes kywd=arg pairs down MRO chain.
         """
@@ -30,12 +30,13 @@ class ROI():
         self.__bounds = bounds
         self._coordinates = [0, 0, self.__bounds[1], self.__bounds[0]]
 
-    def set_ROI(self, key):
-        """Set region of interest for drop event capture using key input.
-         W/S control the top border of the ROI.
-         A/D control the leftmost border of the ROI.
-         I/K control the bottom border of the ROI.
-         J/L control the rightmost border of the ROI.
+    def set_roi(self, key):
+        """Set ROI for drop event capture using key input.
+
+        W/S control the top border of the ROI.
+        A/D control the leftmost border of the ROI.
+        I/K control the bottom border of the ROI.
+        J/L control the rightmost border of the ROI.
         """
         key = key & 0xDF
         keys = {ord('W'): (1, -5), ord('S'): (1, 5),

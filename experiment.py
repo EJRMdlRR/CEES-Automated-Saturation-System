@@ -17,8 +17,8 @@ from valve import Valve, shutoff_valve
 
 
 class Experiment(Monitor, Valve, Model, ):
-    """Automated Saturation System Experiment
-    .........................................
+    """Automated Saturation System Experiment.
+
     Uses multiple inheritance to acess each
      of the components that make up an exp.
 
@@ -33,6 +33,7 @@ class Experiment(Monitor, Valve, Model, ):
     TODO: Integrate machine learning infrastructure
      for eventual ML implementation.
     """
+
     MIN_NOISE = 50
     CLOG_DELAY = 30
     NOISE_SPIKE = 5
@@ -40,14 +41,14 @@ class Experiment(Monitor, Valve, Model, ):
     CALIBRATION_FRAMES = 250
 
     def __init__(self, title='', user='Default', viscosity=50, **kwargs):
-        """Initializes Experiment Class
-        -------------------------------
+        """Initialize Experiment Class.
+
         Experiment properties include:
          title and date of experiment,
          viscosity of the liquid being used,
          time the experiment started,
          and any notes added by the user.
-        -------------------------------
+
         Arguments are passed by keyword or by order.
         Further kywd=arg pairs passed down MRO chain.
         """
@@ -67,7 +68,8 @@ class Experiment(Monitor, Valve, Model, ):
         print(":: EXPERIMENT INITIALIZED ::\n")
 
     def main(self):
-        """Control algorithm implementation
+        """Control algorithm implementation.
+
         Fundamentally a finite state machine, it applies methods
          corresponding to its current state (calibrated, saturated, ...)
 
@@ -104,14 +106,15 @@ class Experiment(Monitor, Valve, Model, ):
             print("Shutdown complete")
 
     def key_input(self, key):
-        """Sends keyboard input to each components' input methods.
+        """Send keyboard input to each components' input methods.
+
         Also checks key input for confimation on series of actions.
 
         key = key & 0xDF capitalizes all alphabetic input.
         Shifts non letter characters by setting bit 5 to 0.
         """
         self.set_volts(key)
-        self.set_ROI(key)
+        self.set_roi(key)
 
         if key == ord('0'):
             if not self.defaults_set:
@@ -129,12 +132,11 @@ class Experiment(Monitor, Valve, Model, ):
             self.terminate()
 
     def check_for_drop(self, noise):
-        """Confirms that noise spike is due to new drop and not ripple.
+        """Confirm that noise spike is due to new drop and not ripple.
 
         TODO: Find better method than just time delay.
          Might cause system to miss streams.
         """
-
         if (time.time() - self.last_drop_time) > self.RIPPLE_DELAY:
             time_since_drop = time.time() - self.last_drop_time
             print("Drop! {:.2f}s since last drop".format(time_since_drop))
@@ -153,7 +155,7 @@ class Experiment(Monitor, Valve, Model, ):
         self.notes.append("Notes at frame [{}]: {}".format(frame_no, notes))
 
     def summary(self):
-        """ Print out essential experiment statistics"""
+        """Print out essential experiment statistics."""
         summary = """Final volts: {0}
         Total drops: {1}
         Average pixel noise: {2:.2f}
@@ -166,14 +168,18 @@ class Experiment(Monitor, Valve, Model, ):
         print(summary)
 
     def terminate(self):
-        """Execute termination procedure
-        1. Compile collected experiment data into strings
-        2. Write collected drop data to text file.
-        3. Write collected noise data to text file
+        """Execute termination procedure.
+
+        1. Terminate OpenCV/Vision processes.
+        2. Fully close valve.
+        3. Print summary.
+        4. Compile collected experiment data into strings
+        5. Write collected drop data to text file.
+        6. Write collected noise data to text file
         """
         print("Terminating...\n")
-        self.shutoff_vision()
         parallelize(shutoff_valve, (self.dac,))
+        self.shutoff_vision()
         self.summary()
 
         emptied = "Succesful" if self.saturated else "Unsuccesful"
@@ -227,7 +233,7 @@ class Experiment(Monitor, Valve, Model, ):
 
 
 def parallelize(function, arguments=None):
-    """Parallelize functions so as to not interrupt valve operation"""
+    """Parallelize functions so as to not interrupt valve operation."""
     if arguments:
         t = Process(target=function, args=arguments)
     else:
@@ -237,8 +243,7 @@ def parallelize(function, arguments=None):
 
 
 def input_with_timeout(prompt, timeout):
-    """Read keyboard input for [timeout]s length of time.
-    Also, expect stdin to be line buffered"""
+    """Read [line buffered] keyboard input for [timeout] seconds."""
     print(prompt)
     if termios_lib:
         termios.tcflush(sys.stdin, termios.TCIOFLUSH)

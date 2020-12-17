@@ -2,8 +2,8 @@ import time
 
 
 class Model():
-    """Physical Model
-    .................
+    """Physical Model.
+
     Contains all methods and values realting to the physical model.
     These include the model's current saturation state.
     A byproduct itself of the drops that fell into the model,
@@ -11,18 +11,18 @@ class Model():
     """
 
     def __init__(self, **kwargs):
-        """Initializes virtualization of Physical Model.
-        ------------------------------------------------
+        """Initialize virtualization of Physical Model.
+
         All relevant drop/no-drop data is saved to lists
          for later local storage.
 
         Dop noise and no-drop noise are calculated each frame
          to prevent unnecessary list iterations.
 
-        TODO: Automate setting of seconds per drops
-        ------------------------------------------------
         Uses seconds per drop in **kwargs if given.
         Passes kywd=arg pairs down MRO chain.
+
+        TODO: Automate setting of seconds per drops
         """
         super().__init__(**kwargs)
 
@@ -39,22 +39,16 @@ class Model():
         print(":: MODEL INITIALIZED ::\n")
 
     def get_drop_average(self):
-        """Returns average noise of frames with drops.
-        If there were no drops returns -1.
-        """
-        if len(self.drops):
+        """Return average noise of drop frames. If none return -1."""
+        if len(self.drops) > 0:
             return self.drop_sum / len(self.drops)
-        else:
-            return -1
+        return -1
 
     def get_noise_average(self):
-        """Returns average noise of frames without drops.
-        If there were no such frames returns -1.
-        """
-        if len(self.noise):
+        """Return average noise of no-drop frames. If none return -1."""
+        if len(self.noise) > 0:
             return self.noise_sum / len(self.noise)
-        else:
-            return -1
+        return -1
 
     def add_noise(self, frame_no, noise):
         """Add noise data to class for averaging."""
@@ -63,6 +57,7 @@ class Model():
 
     def add_drop(self, frame_no, noise, beginning, volts):
         """Add drop data to history.
+
         Data includes: time since beginning,
          time since last drop, frame number,
          current noise average, frame's noise,

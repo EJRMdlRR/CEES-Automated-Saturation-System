@@ -4,16 +4,16 @@ from roi import ROI
 
 
 class Monitor(ROI):
-    """Vision Monitor
-    .................
+    """Vision Monitor.
+
     Contains all methods and values that handle machine vision.
     This includes camera interfacing, region of interest (ROI),
      and data processing, among others.
     """
 
     def __init__(self, **kwargs):
-        """Initializes Python-Camera interface.
-        ---------------------------------------
+        """Initialize Python-Camera interface.
+
         Choose video with:
          0 for laptop camera
          1 for USB camera
@@ -25,7 +25,7 @@ class Monitor(ROI):
 
         More on background subtraction methods at
         https://docs.opencv.org/4.5.0/de/de1/group__video__motion.html
-        ---------------------------------------
+
         Uses source in **kwargs if given.
         Passes kywd=arg pairs down MRO chain.
         """
@@ -48,8 +48,8 @@ class Monitor(ROI):
 
     def get_frame(self):
         """Call next frame from camera.
-        Draw rectangle around region of interest on each frame.
 
+        Draw rectangle around region of interest on each frame.
         If next frame not found raise Exception.
 
         Returns: OpenCV frame (numerical array)
@@ -64,7 +64,8 @@ class Monitor(ROI):
         return self.__frame
 
     def show_frame(self):
-        """Shows frame in a resizeable window.
+        """Show frame in a resizeable window.
+
         Shows each frame for 30ms (~30 FPS),
          or until a key is pressed.
 
@@ -77,6 +78,7 @@ class Monitor(ROI):
 
     def image_processing(self):
         """Process image to capture moving pixels.
+
         Crop image to region of interest (ROI), then convert to grayscale.
         After that use background subtraction on ROI.
 
@@ -111,18 +113,14 @@ class Monitor(ROI):
         return noise
 
     def shutoff_vision(self):
-        """Release camera interface.
-        Destroy any associated windows.
-        """
+        """Release camera interface. Destroy any associated windows."""
         print("Shutting off vision...")
         self.__capture.release()
         cv2.destroyAllWindows()
         print("Vision released.\n")
 
     def __draw_rectangle(self):
-        """Draw rectangle around region of interest (ROI).
-        Crop ROI for later processing.
-        """
+        """Draw rectangle around ROI. Crop for later processing."""
         west, north, east, south = self._coordinates
 
         self.__frame = cv2.rectangle(self.__frame,
