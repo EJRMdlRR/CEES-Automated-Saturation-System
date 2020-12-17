@@ -28,6 +28,7 @@ class Valve():
     If a DAC is not connected it uses a simulated DAC.
     This allows local testing and simulations.
     """
+
     __DELAY = 10
     __SCALE = 100 / 4010
 
@@ -124,11 +125,11 @@ class Valve():
         except ValueError:
             print("Input was not a number")
 
-    def calculate(self, K, seconds_per_drops, last_drop_time):
+    def calculate(self, k, seconds_per_drops, last_drop_time):
         """Calculate appropriate voltage based on most recent drop."""
         print("Calculating new voltage...")
         delta = (time.time() - last_drop_time) - seconds_per_drops
-        self.volts = check_bounds((self.__optimal_volts + delta * K))
+        self.volts = check_bounds((self.__optimal_volts + delta * k))
 
         if (self.dac.raw_value != self.volts):
             print("Volts: {:.2f}%".format(self.__SCALE * (self.volts - 45)))

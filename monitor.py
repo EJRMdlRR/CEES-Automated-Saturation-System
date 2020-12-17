@@ -41,8 +41,8 @@ class Monitor(ROI):
         self.__roi_frame = None
         self.__backSub = cv2.createBackgroundSubtractorMOG2(40, 60, False)
 
-        BOUNDS = (int(self.__capture.get(4)), int(self.__capture.get(3)))
-        self.set_bounds(BOUNDS)
+        bounds = (int(self.__capture.get(4)), int(self.__capture.get(3)))
+        self.set_bounds(bounds)
 
         print(":: MONITOR INITIALIZED ::\n")
 
@@ -89,8 +89,8 @@ class Monitor(ROI):
         west, north, east, south = self._coordinates
 
         gray = cv2.cvtColor(self.__roi_frame, cv2.COLOR_BGR2GRAY)
-        fgMask = self.__backSub.apply(gray)
-        fgMask_RGB = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2RGB)
+        fg_mask = self.__backSub.apply(gray)
+        fg_mask_rgb = cv2.cvtColor(fg_mask, cv2.COLOR_GRAY2RGB)
 
         cv2.rectangle(self.__frame,
                       (10, 2),
@@ -106,8 +106,8 @@ class Monitor(ROI):
                     (255, 255, 255)
                     )
 
-        self.__frame[north: south, west: east] = fgMask_RGB
-        noise = cv2.countNonZero(fgMask)
+        self.__frame[north: south, west: east] = fg_mask_rgb
+        noise = cv2.countNonZero(fg_mask)
 
         self.frame_no += 1
         return noise
