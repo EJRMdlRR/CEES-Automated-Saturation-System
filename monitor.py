@@ -5,14 +5,15 @@ from roi import ROI
 
 class Monitor(ROI):
     """Vision Monitor
+    .................
     Contains all methods and values that handle machine vision.
     This includes camera interfacing, region of interest (ROI),
-    and data processing, among others.
+     and data processing, among others.
     """
 
     def __init__(self, **kwargs):
-        """Initialize Python-Camera interface.
-
+        """Initializes Python-Camera interface.
+        ---------------------------------------
         Choose video with:
          0 for laptop camera
          1 for USB camera
@@ -24,6 +25,9 @@ class Monitor(ROI):
 
         More on background subtraction methods at
         https://docs.opencv.org/4.5.0/de/de1/group__video__motion.html
+        ---------------------------------------
+        Uses source in **kwargs if given.
+        Passes kywd=arg pairs down MRO chain.
         """
         super().__init__(**kwargs)
 
@@ -34,8 +38,8 @@ class Monitor(ROI):
 
         self.__frame = None
         self.frame_no = 0
-        self.roi_frame = None
-        self.backSub = cv2.createBackgroundSubtractorMOG2(40, 60, False)
+        self.__roi_frame = None
+        self.__backSub = cv2.createBackgroundSubtractorMOG2(40, 60, False)
 
         BOUNDS = (int(self.__capture.get(4)), int(self.__capture.get(3)))
         self.set_bounds(BOUNDS)
@@ -47,6 +51,8 @@ class Monitor(ROI):
         Draw rectangle around region of interest on each frame.
 
         If next frame not found raise Exception.
+
+        Returns: OpenCV frame (numerical array)
         """
         __, self.__frame = self.__capture.read()
 
@@ -58,21 +64,30 @@ class Monitor(ROI):
         return self.__frame
 
     def show_frame(self):
+        """Shows frame in a resizeable window.
+        Shows each frame for 30ms (~30 FPS),
+         or until a key is pressed.
+
+        Returns: ASCII value of key pressed (int)
+        """
         cv2.namedWindow('Frame', cv2.WINDOW_NORMAL)
         cv2.imshow('Frame', self.__frame)
 
-        return cv2.waitKey(60) & 0xFF
+        return cv2.waitKey(30) & 0xFF
 
     def image_processing(self):
         """Process image to capture moving pixels.
-        Crop image to region of interest (ROI), then convert to grayscalexp.
+        Crop image to region of interest (ROI), then convert to grayscale.
         After that use background subtraction on ROI.
-        """
-        west, north, east, south = self.coordinates
 
-        """TODO: Better variable names"""
-        gray = cv2.cvtColor(self.roi_frame, cv2.COLOR_BGR2GRAY)
-        fgMask = self.backSub.apply(gray)
+        TODO: Better variable names
+
+        Returns: Amount of pixels detected to have moved (int)
+        """
+        west, north, east, south = self._coordinates
+
+        gray = cv2.cvtColor(self.__roi_frame, cv2.COLOR_BGR2GRAY)
+        fgMask = self.__backSub.apply(gray)
         fgMask_RGB = cv2.cvtColor(fgMask, cv2.COLOR_GRAY2RGB)
 
         cv2.rectangle(self.__frame,
@@ -96,6 +111,9 @@ class Monitor(ROI):
         return noise
 
     def shutoff_vision(self):
+        """Release camera interface.
+        Destroy any associated windows.
+        """
         print("Shutting off vision...")
         self.__capture.release()
         cv2.destroyAllWindows()
@@ -105,13 +123,13 @@ class Monitor(ROI):
         """Draw rectangle around region of interest (ROI).
         Crop ROI for later processing.
         """
+        west, north, east, south = self._coordinates
+
         self.__frame = cv2.rectangle(self.__frame,
-                                     (self.coordinates[0], self.coordinates[1]),
-                                     (self.coordinates[2], self.coordinates[3]),
+                                     (west, north),
+                                     (east, south),
                                      (100, 50, 200),
                                      2,
                                      )
 
-        self.roi_frame = self.__frame[self.coordinates[1]: self.coordinates[3],
-                                      self.coordinates[0]:self.coordinates[2],
-                                      ]
+        self.__roi_frame = self.__frame[north: south, west: east]

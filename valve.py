@@ -55,12 +55,12 @@ class Valve():
         else:
             raise Exception("No DAC or unsupported DAC connected.")
 
-        self.volts = self.clog_volts = self.optimal_volts = 45
+        self.volts = self.clog_volts = self.__optimal_volts = 45
 
-        self.latency = time.time()
+        self.__latency = time.time()
+        self.__time_open = 0
         self.clogged = False
 
-        self.time_open = 0
 
         print(":: VALVE INITIALIZED ::\n")
 
@@ -74,15 +74,12 @@ class Valve():
         """
 
         vals = {ord('+'): 5, ord('-'): -5}
-        funcs = {ord('0'): self.set_optimal_volts,
-                 ord('E'): input,
+        funcs = {ord('0'): self.__set_optimal_volts,
+                 ord('E'): self.__set_input_volts,
                  }
 
         if (key & 0xDF) in funcs:
-            if funcs[key]().is_integer():
-                self.volts = funcs[key]()
-            elif funcs[key]().is_numeric():
-                self.volts = int(funcs[key]())
+            funcs[key]()
         elif key in vals:
             self.volts += vals[key]
             self.volts = check_bounds(self.volts)
@@ -97,31 +94,41 @@ class Valve():
         Once the output is max for 1min the saturation is a successs
         """
         self.clogged = True
-        if (time.time() - self.latency > self.__DELAY):
-            self.latency = time.time()
+        if (time.time() - self.__latency > self.__DELAY):
+            self.__latency = time.time()
             if (self.clog_volts == 4055):
-                self.time_open += 1
-                print("{}s fuly open.".format(self.time_open * self.__DELAY))
+                self.__time_open += 1
+                print("{}s fuly open.".format(self.__time_open * self.__DELAY))
             else:
                 self.clog_volts = check_bounds(self.clog_volts + 80)
                 print("Clog volts: {:.2f}%".format(
-                    self.__SCALE * (self.clog_volts - 45))
-                    )
-
-        if (self.time_open >= 12):
+                      self.__SCALE * (self.clog_volts - 45))
+                      )
+        if (self.__time_open >= 12):
             return True
         return False
 
-    def set_optimal_volts(self):
+    def __set_optimal_volts(self):
         """Set optimal volt value according to researcher.
-        Setas a function for the set_volts procedure."""
-        self.optimal_volts = self.volts
+        Setas a function for the set_volts procedure.
+        """
+        self.__optimal_volts = self.volts
+
+    def __set_input_volts(self):
+        """Set optimal volt value according to researcher.
+        Setas a function for the set_volts procedure.
+        """
+        try:
+            volts = int(input("Please enter your desired voltage: "))
+            self.volts = check_bounds(volts)
+        except ValueError:
+            print("Input was not a number")
 
     def calculate(self, K, seconds_per_drops, last_drop_time):
         """Calculate appropriate voltage based on most recent drop."""
         print("Calculating new voltage...")
         delta = (time.time() - last_drop_time) - seconds_per_drops
-        self.volts = check_bounds((self.optimal_volts + delta * K))
+        self.volts = check_bounds((self.__optimal_volts + delta * K))
 
         if (self.dac.raw_value != self.volts):
             print("Volts: {:.2f}%".format(self.__SCALE * (self.volts - 45)))
@@ -129,8 +136,9 @@ class Valve():
 
     def equalize(self):
         """Reset current volts to last known volts before clogging.
-        Closes valve 2x as fast as clog protocol opens it."""
-        self.time_open = 0
+        Closes valve 2x as fast as clog protocol opens it.
+        """
+        self.__time_open = 0
         self.clogged = False
 
         while(self.clog_volts > self.volts):
@@ -159,7 +167,7 @@ def shutoff_valve(dac):
 def check_bounds(volts):
     """Limits voltage.
     Voltage limits are 45 (1.1%) and 4055 (99.0%) of a 4095 max.
-    Valve calibrated so that at 45 (1.1%) it's shut.
+    Valve calibrated so that at 45 (1.1%) it's fully shutoff.
     """
     if volts > 4055:
         return 4055

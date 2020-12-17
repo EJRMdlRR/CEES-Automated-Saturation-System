@@ -17,15 +17,40 @@ from valve import Valve, shutoff_valve
 
 
 class Experiment(Monitor, Valve, Model, ):
-    """
-    TODO: Improve constants or parametrize
+    """Automated Saturation System Experiment
+    .........................................
+    Uses multiple inheritance to acess each
+     of the components that make up an exp.
+
+    Leverages the methods of the subcomponents
+     for each step of the control algorithm.
+
+    Furthermore, contains all data and methods
+     related to said data on the experiment.
+
+    TODO: Improve constants experimentally
+     or automate them.
+    TODO: Integrate machine learning infrastructure
+     for eventual ML implementation.
     """
     MIN_NOISE = 50
     CLOG_DELAY = 30
     NOISE_SPIKE = 5
+    RIPPLE_DELAY = 0.1
     CALIBRATION_FRAMES = 250
 
     def __init__(self, title='', user='Default', viscosity=50, **kwargs):
+        """Initializes Experiment Class
+        -------------------------------
+        Experiment properties include:
+         title and date of experiment,
+         viscosity of the liquid being used,
+         time the experiment started,
+         and any notes added by the user.
+        -------------------------------
+        Arguments are passed by keyword or by order.
+        Further kywd=arg pairs passed down MRO chain.
+        """
         super().__init__(**kwargs)
 
         self.title = title
@@ -42,9 +67,12 @@ class Experiment(Monitor, Valve, Model, ):
         print(":: EXPERIMENT INITIALIZED ::\n")
 
     def main(self):
-        """
+        """Control algorithm implementation
+        Fundamentally a finite state machine, it applies methods
+         corresponding to its current state (calibrated, saturated, ...)
+
         TODO: Improve control algorithm.
-        TODO: Calibration reset system
+        TODO: Implement calibration reset system.
         """
         try:
             while not self.saturated:
@@ -76,9 +104,18 @@ class Experiment(Monitor, Valve, Model, ):
             print("Shutdown complete")
 
     def key_input(self, key):
+        """Sends keyboard input to each components' input methods.
+        Also checks key input for confimation on series of actions.
+
+        key = key & 0xDF capitalizes all alphabetic input.
+        Shifts non letter characters by setting bit 5 to 0.
+        """
         self.set_volts(key)
         self.set_ROI(key)
+
         if key == ord('0'):
+            if not self.defaults_set:
+                print("Calibrating...")
             self.defaults_set = True
             return
 
@@ -92,12 +129,15 @@ class Experiment(Monitor, Valve, Model, ):
             self.terminate()
 
     def check_for_drop(self, noise):
-        print("Checking for drop...")
-        time_since_drop = time.time() - self.last_drop_time
-        print("{:.2f}s since last drop".format(time_since_drop))
+        """Confirms that noise spike is due to new drop and not ripple.
 
-        if (time.time() - self.last_drop_time) > 0.1:
-            print("Drop! Adding to database...")
+        TODO: Find better method than just time delay.
+         Might cause system to miss streams.
+        """
+
+        if (time.time() - self.last_drop_time) > self.RIPPLE_DELAY:
+            time_since_drop = time.time() - self.last_drop_time
+            print("Drop! {:.2f}s since last drop".format(time_since_drop))
             self.add_drop(self.frame_no, noise, self.beginning, self.volts)
             self.calculate(self.viscosity,
                            self.seconds_per_drops,
@@ -114,10 +154,16 @@ class Experiment(Monitor, Valve, Model, ):
 
     def summary(self):
         """ Print out essential experiment statistics"""
-        print("Final volts: {}".format(self.volts))
-        print("Total drops: {}".format(len(self.drops)))
-        print("Average pixel noise: {:.2f}".format(self.get_noise_average()))
-        print("Average drop noise: {:.2f}".format(self.get_drop_average()))
+        summary = """Final volts: {0}
+        Total drops: {1}
+        Average pixel noise: {2:.2f}
+        Average drop noise: {3:.2f}
+        """.format(self.volts,
+                   len(self.drops),
+                   self.get_noise_average(),
+                   self.get_drop_average()
+                   )
+        print(summary)
 
     def terminate(self):
         """Execute termination procedure
