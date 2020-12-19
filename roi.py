@@ -39,6 +39,9 @@ class ROI():
         J/L control the rightmost border of the ROI.
         """
         key = key & 0xDF
+        if key == ord('Q'):
+            raise Exception("QUIT")
+
         keys = {ord('W'): (1, -5), ord('S'): (1, 5),
                 ord('A'): (0, -5), ord('D'): (0, 5),
                 ord('I'): (3, -5), ord('K'): (3, 5),

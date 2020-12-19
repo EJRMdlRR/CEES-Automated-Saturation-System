@@ -57,6 +57,8 @@ class Valve():
 
         self.volts = self.clog_volts = self.__optimal_volts = 45
 
+
+        self._flow_rate = kwargs.pop('flow') if 'flow' in kwargs else 2
         self.__latency = time.time()
         self.__time_open = 0
         self.clogged = False
@@ -125,10 +127,10 @@ class Valve():
         except ValueError:
             print("Input was not a number")
 
-    def calculate(self, k, seconds_per_drops, last_drop_time):
+    def calculate(self, k, last_drop_time):
         """Calculate appropriate voltage based on most recent drop."""
         print("Calculating new voltage...")
-        delta = (time.time() - last_drop_time) - seconds_per_drops
+        delta = (time.time() - last_drop_time) - self._flow_rate
         self.volts = check_bounds((self.__optimal_volts + delta * k))
 
         if (self.dac.raw_value != self.volts):

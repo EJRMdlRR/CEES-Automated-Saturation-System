@@ -28,7 +28,6 @@ class Model():
 
         self.last_drop_time = time.time()
         self.drop_sum = 0
-        self.seconds_per_drops = kwargs.pop('spd') if 'spd' in kwargs else 2
         self.drops = []
 
         self.noise = []

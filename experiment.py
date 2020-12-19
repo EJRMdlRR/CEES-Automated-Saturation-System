@@ -142,8 +142,7 @@ class Experiment(Monitor, Valve, Model, ):
             print("Drop! {:.2f}s since last drop".format(time_since_drop))
             self.add_drop(self.frame_no, noise, self.beginning, self.volts)
             self.calculate(self.viscosity,
-                           self.seconds_per_drops,
-                           self.last_drop_time
+                           self.last_drop_time,
                            )
             self.equalize()
         else:
@@ -194,7 +193,7 @@ class Experiment(Monitor, Valve, Model, ):
                    self.date,
                    self.user,
                    self.viscosity,
-                   self.seconds_per_drops,
+                   self._flow_rate,
                    self.notes[0],
                    )
 

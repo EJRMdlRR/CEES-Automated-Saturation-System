@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 from roi import ROI
 
@@ -44,15 +45,15 @@ class Monitor(ROI):
         bounds = (int(self.__capture.get(4)), int(self.__capture.get(3)))
         self.set_bounds(bounds)
 
-        print(":: MONITOR INITIALIZED ::\n")
+        print(":: MONITOR INITIALIZED ::")
+        print(self._coordinates)
+        print()
 
     def get_frame(self):
         """Call next frame from camera.
 
         Draw rectangle around region of interest on each frame.
         If next frame not found raise Exception.
-
-        Returns: OpenCV frame (numerical array)
         """
         __, self.__frame = self.__capture.read()
 
@@ -60,8 +61,6 @@ class Monitor(ROI):
             raise Exception("Camera error! Next frame not found.")
 
         self.__draw_rectangle()
-
-        return self.__frame
 
     def show_frame(self):
         """Show frame in a resizeable window.
@@ -81,15 +80,25 @@ class Monitor(ROI):
 
         Crop image to region of interest (ROI), then convert to grayscale.
         After that use background subtraction on ROI.
+        Finally convert back to RGB in order to crop it into the display.
+         1 channel grayscale can't be cropped into 3 channel RGB image.
 
         TODO: Better variable names
 
         Returns: Amount of pixels detected to have moved (int)
         """
         west, north, east, south = self._coordinates
-
         gray = cv2.cvtColor(self.__roi_frame, cv2.COLOR_BGR2GRAY)
         fg_mask = self.__backSub.apply(gray)
+        try:
+            coords = np.argwhere(fg_mask == 255)
+            x = coords[:, 0]
+            y = coords[:, 1]
+            self._coordinates = [ np.amin(x), np.amin(y), np.amax(x), np.amax(y)]
+            print(self._coordinates)
+        except Exception as e:
+            print("E :", e)
+
         fg_mask_rgb = cv2.cvtColor(fg_mask, cv2.COLOR_GRAY2RGB)
 
         cv2.rectangle(self.__frame,
@@ -131,3 +140,15 @@ class Monitor(ROI):
                                      )
 
         self.__roi_frame = self.__frame[north: south, west: east]
+
+
+if __name__ == "__main__":
+    test = Monitor()
+    try:
+        while True:
+            test.get_frame()
+            test.image_processing()
+            test.show_frame()
+    except Exception as e:
+        print("Exception:", e)
+        test.shutoff_vision()
