@@ -94,7 +94,7 @@ class Monitor(ROI):
             coords = np.argwhere(fg_mask == 255)
             x = coords[:, 0]
             y = coords[:, 1]
-            self._coordinates = [ np.amin(x), np.amin(y), np.amax(x), np.amax(y)]
+            self._coordinates = [np.amin(x), np.amin(y), np.amax(x), np.amax(y)]
             print(self._coordinates)
         except Exception as e:
             print("E :", e)
