@@ -11,9 +11,9 @@ except Exception as exc:
     print("Exception: {}\n".format(exc))
     termios_lib = False
 
-from model import Model
-from monitor import Monitor
-from valve import Valve, shutoff_valve
+from .model import Model
+from .monitor import Monitor
+from .valve import Valve, shutoff_valve
 
 
 class Experiment(Monitor, Valve, Model, ):

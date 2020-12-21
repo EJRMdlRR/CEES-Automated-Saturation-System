@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from roi import ROI
+from .roi import ROI
 
 
 class Monitor(ROI):
